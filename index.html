@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="description"
+    content="Forex Clause provides live Forex market analysis, trade setups, entry zones, stop loss and take profit levels."
+  >
+
+  <title>Forex Clause | Live Forex Market Analysis</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #07111f;
+      color: #ffffff;
+    }
+
+    header {
+      height: 70px;
+      border-bottom: 1px solid #1d3045;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 6%;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .logo span {
+      color: #20d77a;
+    }
+
+    nav a {
+      color: #9aadc2;
+      text-decoration: none;
+      margin-left: 25px;
+    }
+
+    nav a:hover {
+      color: white;
+    }
+
+    .hero {
+      min-height: 600px;
+      display: flex;
+      align-items: center;
+      padding: 70px 6%;
+      background:
+        radial-gradient(
+          circle at 80% 30%,
+          rgba(24, 104, 170, .25),
+          transparent 35%
+        );
+    }
+
+    .hero-content {
+      max-width: 700px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 8px 14px;
+      border-radius: 30px;
+      background: #102a43;
+      color: #65b7ff;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: clamp(42px, 7vw, 76px);
+      line-height: 1;
+      margin-bottom: 25px;
+    }
+
+    .hero p {
+      color: #9aadc2;
+      font-size: 18px;
+      line-height: 1.7;
+      max-width: 650px;
+    }
+
+    .buttons {
+      margin-top: 30px;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      padding: 13px 20px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 15px;
+    }
+
+    .primary {
+      background: #20d77a;
+      color: #03150c;
+    }
+
+    .secondary {
+      background: #12263b;
+      color: white;
+      border: 1px solid #29435e;
+    }
+
+    section {
+      padding: 70px 6%;
+    }
+
+    .section-title {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .section-title h2 {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+
+    .section-title p {
+      color: #8da2b8;
+    }
+
+    .dashboard {
+      max-width: 1200px;
+      margin: auto;
+      background: #0b1828;
+      border: 1px solid #1d3045;
+      border-radius: 15px;
+      padding: 20px;
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .market-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+    }
+
+    .market-card {
+      background: #0e1e30;
+      border: 1px solid #1d3045;
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .pair {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .signal {
+      padding: 5px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .buy {
+      background: #20d77a;
+      color: #03150c;
+    }
+
+    .sell {
+      background: #ff536b;
+      color: white;
+    }
+
+    .price {
+      font-size: 25px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .green {
+      color: #20d77a;
+      font-size: 13px;
+    }
+
+    .red {
+      color: #ff536b;
+      font-size: 13px;
+    }
+
+    .details {
+      border-top: 1px solid #1d3045;
+      margin-top: 15px;
+      padding-top: 10px;
+    }
+
+    .detail {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 0;
+      font-size: 13px;
+    }
+
+    .detail span {
+      color: #8499af;
+    }
+
+    .confidence {
+      margin-top: 12px;
+      color: #8499af;
+      font-size: 12px;
+    }
+
+    .bar {
+      height: 6px;
+      background: #1a2c40;
+      border-radius: 20px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: #20d77a;
+    }
+
+    .pricing {
+      max-width: 1000px;
+      margin: auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .plan {
+      background: #0d1b2b;
+      border: 1px solid #1d3045;
+      border-radius: 15px;
+      padding: 30px;
+    }
+
+    .plan.featured {
+      border-color: #20d77a;
+    }
+
+    .plan h3 {
+      font-size: 22px;
+      margin-bottom: 15px;
+    }
+
+    .price-large {
+      font-size: 40px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    .price-large small {
+      font-size: 14px;
+      color: #8499af;
+    }
+
+    .plan ul {
+      list-style: none;
+      color: #9aadc2;
+      line-height: 2;
+      margin-bottom: 25px;
+    }
+
+    .plan li::before {
+      content: "✓ ";
+      color: #20d77a;
+    }
+
+    .plan button {
+      width: 100%;
+    }
+
+    .how {
+      max-width: 1100px;
+      margin: auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+    }
+
+    .step {
+      background: #0d1b2b;
+      border: 1px solid #1d3045;
+      border-radius: 12px;
+      padding: 25px;
+    }
+
+    .step-number {
+      color: #20d77a;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .step p {
+      color: #8da2b8;
+      margin-top: 10px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    footer {
+      border-top: 1px solid #1d3045;
+      padding: 35px 6%;
+      color: #71869c;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .disclaimer {
+      margin-top: 15px;
+      background: #211c0d;
+      border: 1px solid #4a401d;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+
+    .ai-panel {
+      max-width: 1000px;
+      margin: auto;
+      background: #0b1828;
+      border: 1px solid #1d3045;
+      border-radius: 15px;
+      padding: 25px;
+    }
+    .ai-top {
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:20px;
+      flex-wrap:wrap;
+    }
+    .ai-top h3 { font-size:26px; margin:10px 0 8px; }
+    .ai-top p { color:#8da2b8; line-height:1.6; }
+    .ai-badge {
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:20px;
+      background:#102a43;
+      color:#65b7ff;
+      font-size:11px;
+      font-weight:bold;
+      letter-spacing:.5px;
+    }
+    .tier-switch { display:flex; gap:8px; }
+    .tier {
+      padding:9px 15px;
+      border:1px solid #29435e;
+      background:#12263b;
+      color:#9aadc2;
+      border-radius:8px;
+    }
+    .tier.active { background:#20d77a; color:#03150c; border-color:#20d77a; }
+    .ai-note {
+      margin:20px 0 15px;
+      padding:10px 12px;
+      border-radius:8px;
+      background:#0e1e30;
+      color:#9aadc2;
+      font-size:13px;
+    }
+    .ai-messages {
+      min-height:210px;
+      max-height:480px;
+      overflow:auto;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      padding:5px 0;
+    }
+    .ai-message {
+      max-width:85%;
+      padding:14px 16px;
+      border-radius:12px;
+      line-height:1.6;
+      white-space:pre-wrap;
+    }
+    .ai-message.assistant {
+      background:#0e1e30;
+      border:1px solid #1d3045;
+      align-self:flex-start;
+    }
+    .ai-message.user {
+      background:#123c2a;
+      border:1px solid #1d6a49;
+      align-self:flex-end;
+    }
+    .ai-message strong { display:block; margin-bottom:5px; }
+    .ai-message p { color:#d8e3ed; }
+    .ai-input-row { display:flex; gap:10px; margin-top:15px; }
+    #aiQuestion {
+      flex:1;
+      resize:vertical;
+      min-height:54px;
+      padding:14px;
+      border-radius:8px;
+      border:1px solid #29435e;
+      background:#07111f;
+      color:white;
+      font:inherit;
+      outline:none;
+    }
+    #aiQuestion:focus { border-color:#20d77a; }
+    .ai-send { min-width:110px; align-self:stretch; }
+    .ai-disclaimer { color:#71869c; font-size:11px; margin-top:10px; line-height:1.5; }
+
+    @media (max-width: 900px) {
+      .market-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .pricing {
+        grid-template-columns: 1fr;
+      }
+
+      .how {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      nav {
+        display: none;
+      }
+
+      .hero {
+        padding: 50px 6%;
+      }
+
+      .market-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .how {
+        grid-template-columns: 1fr;
+      }
+
+      .ai-input-row { flex-direction:column; }
+      .ai-send { width:100%; }
+
+      h1 {
+        font-size: 45px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">
+    Forex<span>Clause</span>
+  </div>
+
+  <nav>
+    <a href="#markets">Markets</a>
+    <a href="#ai">Forex AI</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#how">How it works</a>
+  </nav>
+
+  <button
+    class="primary"
+    onclick="document.getElementById('pricing').scrollIntoView()"
+  >
+    Get Pro
+  </button>
+</header>
+
+
+<section class="hero">
+
+  <div class="hero-content">
+
+    <div class="badge">
+      ● AI-ASSISTED FOREX MARKET INTELLIGENCE
+    </div>
+
+    <h1>
+      Smarter Forex analysis.
+    </h1>
+
+    <p>
+      Get structured Forex market analysis with entry zones,
+      stop loss, take profit, risk/reward and market confidence
+      in one simple dashboard.
+    </p>
+
+    <div class="buttons">
+
+      <button
+        class="primary"
+        onclick="document.getElementById('markets').scrollIntoView()"
+      >
+        Explore Markets
+      </button>
+
+      <button
+        class="secondary"
+        onclick="document.getElementById('pricing').scrollIntoView()"
+      >
+        View Pricing
+      </button>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<section id="markets">
+
+  <div class="section-title">
+    <h2>Live Forex Market Dashboard</h2>
+    <p id="marketStatus">Connecting to live market data…</p>
+  </div>
+
+  <div class="dashboard">
+
+    <div class="dashboard-header">
+      <div>
+        <strong>Current Market Setups</strong>
+        <div id="lastUpdated" style="color:#8499af;font-size:12px;margin-top:5px">Waiting for first update…</div>
+      </div>
+
+      <button class="secondary" id="refreshBtn" onclick="loadMarkets(true)">
+        Refresh
+      </button>
+    </div>
+
+    <div class="market-grid" id="marketGrid">
+      <div class="market-card" style="grid-column:1/-1;text-align:center;color:#9aadc2;padding:35px">
+        Loading live prices and analysis…
+      </div>
+    </div>
+
+  </div>
+
+</section>
+
+
+
+<section id="ai">
+  <div class="section-title">
+    <h2>Forex Clause AI</h2>
+    <p>Ask unlimited questions. Free gives quick market guidance; Premium unlocks deeper analysis.</p>
+  </div>
+
+  <div class="ai-panel">
+    <div class="ai-top">
+      <div>
+        <div class="ai-badge">✦ FOREX CLAUSE AI</div>
+        <h3>Ask your forex assistant</h3>
+        <p>Ask about the live markets, forex concepts, trends or what the dashboard is showing.</p>
+      </div>
+      <div class="tier-switch">
+        <button id="freeTierBtn" class="tier active" onclick="setAITier('free')">Free</button>
+        <button id="premiumTierBtn" class="tier" onclick="setAITier('premium')">Premium</button>
+      </div>
+    </div>
+
+    <div class="ai-note" id="aiTierNote">
+      Free AI: unlimited questions with concise, basic answers.
+    </div>
+
+    <div id="aiMessages" class="ai-messages">
+      <div class="ai-message assistant">
+        <strong>Forex Clause AI</strong>
+        <p>Hi. Ask me something like “What is happening with EUR/USD?” or “What does RSI mean?”</p>
+      </div>
+    </div>
+
+    <div class="ai-input-row">
+      <textarea id="aiQuestion" rows="2" maxlength="1200"
+        placeholder="Ask Forex Clause AI a question…"
+        onkeydown="handleAIKey(event)"></textarea>
+      <button class="primary ai-send" id="aiSendBtn" onclick="askForexAI()">Ask AI</button>
+    </div>
+    <div class="ai-disclaimer">AI analysis is educational and does not guarantee trading results or constitute personalized financial advice.</div>
+  </div>
+</section>
+
+
+<section id="pricing">
+
+  <div class="section-title">
+    <h2>Choose Your Plan</h2>
+    <p>Unlock more market intelligence with Pro.</p>
+  </div>
+
+  <div class="pricing">
+
+    <div class="plan">
+
+      <h3>Free</h3>
+
+      <div class="price-large">
+        $0 <small>/month</small>
+      </div>
+
+      <ul>
+        <li>Basic market overview</li>
+        <li>Limited signals</li>
+        <li>Basic analysis</li>
+      </ul>
+
+      <button class="secondary">
+        Start Free
+      </button>
+
+    </div>
+
+
+    <div class="plan featured">
+
+      <h3>Pro</h3>
+
+      <div class="price-large">
+        $29 <small>/month</small>
+      </div>
+
+      <ul>
+        <li>Real-time signals</li>
+        <li>Entry levels</li>
+        <li>Stop loss</li>
+        <li>Take profit</li>
+        <li>Risk/reward</li>
+        <li>Advanced analysis</li>
+        <li>Telegram alerts</li>
+      </ul>
+
+      <button
+        class="primary"
+        onclick="subscribe()"
+      >
+        Subscribe
+      </button>
+
+    </div>
+
+
+    <div class="plan">
+
+      <h3>Premium</h3>
+
+      <div class="price-large">
+        $79 <small>/month</small>
+      </div>
+
+      <ul>
+        <li>Everything in Pro</li>
+        <li>Priority alerts</li>
+        <li>Advanced risk tools</li>
+        <li>More markets</li>
+      </ul>
+
+      <button class="secondary">
+        Coming Soon
+      </button>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<section id="how">
+
+  <div class="section-title">
+    <h2>How It Works</h2>
+    <p>Our analysis pipeline is designed to be transparent.</p>
+  </div>
+
+  <div class="how">
+
+    <div class="step">
+      <div class="step-number">01</div>
+      <strong>Market Data</strong>
+      <p>
+        The system receives live and historical Forex prices.
+      </p>
+    </div>
+
+    <div class="step">
+      <div class="step-number">02</div>
+      <strong>Technical Analysis</strong>
+      <p>
+        Trend, momentum, volatility and market structure are evaluated.
+      </p>
+    </div>
+
+    <div class="step">
+      <div class="step-number">03</div>
+      <strong>Risk Engine</strong>
+      <p>
+        Entry, stop loss, take profit and risk/reward are calculated.
+      </p>
+    </div>
+
+    <div class="step">
+      <div class="step-number">04</div>
+      <strong>AI Explanation</strong>
+      <p>
+        AI explains the setup in simple language.
+      </p>
+    </div>
+
+  </div>
+
+</section>
+
+
+<footer>
+
+  <strong>Forex Clause</strong>
+
+  <p>
+    Live-data Forex market analysis platform.
+  </p>
+
+  <div class="disclaimer">
+
+    <strong>Risk Disclosure:</strong>
+
+    Trading Forex and CFDs involves substantial risk of loss.
+    This website is for informational and educational purposes
+    and does not constitute financial advice. Past performance
+    does not guarantee future results.
+
+  </div>
+
+</footer>
+
+
+<script>
+const marketGrid = document.getElementById('marketGrid');
+const marketStatus = document.getElementById('marketStatus');
+const lastUpdated = document.getElementById('lastUpdated');
+const refreshBtn = document.getElementById('refreshBtn');
+
+function fmt(value, symbol) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+  return Number(value).toFixed(symbol.endsWith('/JPY') ? 3 : 5);
+}
+
+function card(m) {
+  const signalClass = m.signal === 'BUY' ? 'buy' : m.signal === 'SELL' ? 'sell' : 'secondary';
+  const change = m.change === null ? '—' : `${m.change >= 0 ? '+' : ''}${m.change.toFixed(2)}%`;
+  const changeClass = m.change >= 0 ? 'green' : 'red';
+  return `
+    <div class="market-card">
+      <div class="pair">
+        <strong>${m.symbol}</strong>
+        <span class="signal ${signalClass}">${m.signal}</span>
+      </div>
+      <div class="price">${fmt(m.price, m.symbol)}</div>
+      <div class="${changeClass}">${change}</div>
+      <div class="details">
+        <div class="detail"><span>Entry</span><b>${fmt(m.entry, m.symbol)}</b></div>
+        <div class="detail"><span>Stop Loss</span><b>${fmt(m.stopLoss, m.symbol)}</b></div>
+        <div class="detail"><span>Take Profit</span><b>${fmt(m.takeProfit, m.symbol)}</b></div>
+        <div class="detail"><span>Risk/Reward</span><b>${m.riskReward}</b></div>
+        <div class="detail"><span>RSI</span><b>${m.indicators.rsi}</b></div>
+      </div>
+      <div class="confidence">
+        Confidence: ${m.confidence}%
+        <div class="bar"><div class="bar-fill" style="width:${m.confidence}%"></div></div>
+      </div>
+    </div>`;
+}
+
+async function loadMarkets(manual = false) {
+  refreshBtn.disabled = true;
+  refreshBtn.textContent = 'Updating…';
+  if (manual) marketStatus.textContent = 'Refreshing live market data…';
+  try {
+    const response = await fetch('/api/markets', { cache: 'no-store' });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Market data request failed');
+    marketGrid.innerHTML = data.markets.map(card).join('');
+    marketStatus.textContent = '● LIVE — Biquote market feed connected';
+    marketStatus.style.color = '#20d77a';
+    lastUpdated.textContent = `Last updated: ${new Date(data.serverTime).toLocaleString()}`;
+  } catch (err) {
+    marketStatus.textContent = `Market feed unavailable: ${err.message}`;
+    marketStatus.style.color = '#ff536b';
+  } finally {
+    refreshBtn.disabled = false;
+    refreshBtn.textContent = 'Refresh';
+  }
+}
+
+let aiTier = 'free';
+
+function setAITier(tier) {
+  aiTier = tier;
+  document.getElementById('freeTierBtn').classList.toggle('active', tier === 'free');
+  document.getElementById('premiumTierBtn').classList.toggle('active', tier === 'premium');
+  document.getElementById('aiTierNote').textContent = tier === 'premium'
+    ? 'Premium AI: deeper analysis, more detailed reasoning and advanced market context.'
+    : 'Free AI: unlimited questions with concise, basic answers.';
+}
+
+function addAIMessage(role, text) {
+  const box = document.getElementById('aiMessages');
+  const el = document.createElement('div');
+  el.className = `ai-message ${role}`;
+  const label = document.createElement('strong');
+  label.textContent = role === 'user' ? 'You' : 'Forex Clause AI';
+  const p = document.createElement('p');
+  p.textContent = text;
+  el.appendChild(label);
+  el.appendChild(p);
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+}
+
+function handleAIKey(event) {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    askForexAI();
+  }
+}
+
+async function askForexAI() {
+  const input = document.getElementById('aiQuestion');
+  const button = document.getElementById('aiSendBtn');
+  const question = input.value.trim();
+  if (!question) return;
+
+  addAIMessage('user', question);
+  input.value = '';
+  button.disabled = true;
+  button.textContent = 'Thinking…';
+
+  try {
+    const response = await fetch('/api/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, tier: aiTier })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'AI request failed.');
+    addAIMessage('assistant', data.answer);
+  } catch (err) {
+    addAIMessage('assistant', `AI is not connected yet: ${err.message}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Ask AI';
+    input.focus();
+  }
+}
+
+function subscribe() {
+  document.getElementById('ai').scrollIntoView({ behavior: 'smooth' });
+  setAITier('premium');
+  alert('Premium payments are not connected yet. The Premium AI interface is ready for the subscription system.');
+}
+
+loadMarkets();
+setInterval(() => loadMarkets(false), 60000);
+</script>
+
+</body>
+</html>
