@@ -8,6 +8,23 @@ const ROOT = __dirname;
 const INDEX = path.join(ROOT, 'index.html');
 
 const PAIRS = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD'];
+
+// Premium-only instruments. The existing forex set above is intentionally preserved.
+// Biquote uses compact MT5-style symbols for these markets.
+const PREMIUM_MARKETS = [
+  { symbol: 'US30', display: 'US30', name: 'Dow Jones 30', category: 'Index' },
+  { symbol: 'US100', display: 'NAS100', name: 'NASDAQ 100', category: 'Index' },
+  { symbol: 'US500', display: 'SPX500', name: 'S&P 500', category: 'Index' },
+  { symbol: 'DE40', display: 'GER40', name: 'Germany 40 / DAX', category: 'Index' },
+  { symbol: 'UK100', display: 'UK100', name: 'FTSE 100', category: 'Index' },
+  { symbol: 'JP225', display: 'JP225', name: 'Nikkei 225', category: 'Index' },
+  { symbol: 'HK50', display: 'HK50', name: 'Hang Seng 50', category: 'Index' },
+  { symbol: 'AUS200', display: 'AUS200', name: 'Australia 200', category: 'Index' },
+  { symbol: 'XAU/USD', display: 'XAUUSD', name: 'Gold', category: 'Metal' },
+  { symbol: 'XAG/USD', display: 'XAGUSD', name: 'Silver', category: 'Metal' }
+];
+
+const PREMIUM_SYMBOLS = PREMIUM_MARKETS.map(m => m.symbol);
 const cache = new Map();
 const CACHE_MS = 60_000;
 const HISTORY_CACHE_MS = 15 * 60_000;
@@ -85,7 +102,10 @@ function rsi(closes, period = 14) {
 }
 
 function decimals(symbol) {
-  return symbol.endsWith('/JPY') ? 3 : 5;
+  if (symbol.endsWith('/JPY')) return 3;
+  if (['XAU/USD', 'XAG/USD'].includes(symbol)) return 2;
+  if (['US30', 'US100', 'US500', 'DE40', 'UK100', 'JP225', 'HK50', 'AUS200'].includes(symbol)) return 2;
+  return 5;
 }
 
 function round(value, places) {
@@ -179,8 +199,14 @@ function analyze(symbol, quote, history) {
   const tp = direction === 0 ? entry + reward : entry + direction * reward;
   const confidence = Math.max(50, Math.min(94, Math.round(52 + Math.abs(totalScore) * 7 + Math.abs(momentum - 50) * 0.22)));
 
+  const meta = PREMIUM_MARKETS.find(m => m.symbol === symbol);
+
   return {
-    symbol, signal, price: round(price, places),
+    symbol,
+    displaySymbol: meta?.display || symbol,
+    marketName: meta?.name || symbol,
+    category: meta?.category || 'Forex',
+    signal, price: round(price, places),
     change: quote.dayDiffPercent != null ? Number(quote.dayDiffPercent) : null,
     entry: round(entry, places), stopLoss: round(sl, places), takeProfit: round(tp, places),
     riskReward: '1 : 2.0', confidence,
@@ -215,10 +241,19 @@ function extractOutputText(data) {
 
 function findRelevant(question, marketsData) {
   const q = question.toLowerCase().replace(/\s+/g, ' ');
-  return marketsData.find(m =>
-    q.includes(m.symbol.toLowerCase().replace('/', '')) ||
-    q.includes(m.symbol.toLowerCase())
-  ) || marketsData[0];
+  return marketsData.find(m => {
+    const aliases = [
+      m.symbol,
+      m.displaySymbol,
+      m.marketName,
+      ...(m.symbol === 'US30' ? ['dow', 'dow jones', 'us30'] : []),
+      ...(m.symbol === 'US100' ? ['nasdaq', 'nasdaq 100', 'nas100', 'us100'] : []),
+      ...(m.symbol === 'DE40' ? ['germany 40', 'german 30', 'german 40', 'ger30', 'ger40', 'dax'] : []),
+      ...(m.symbol === 'XAU/USD' ? ['gold', 'xauusd', 'xau/usd'] : []),
+      ...(m.symbol === 'XAG/USD' ? ['silver', 'xagusd', 'xag/usd'] : [])
+    ];
+    return aliases.some(a => q.includes(String(a).toLowerCase().replace('/', '')));
+  }) || marketsData[0];
 }
 
 function basicFallback(question, marketsData) {
@@ -309,6 +344,31 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { provider: 'Biquote', markets: await markets(), serverTime: new Date().toISOString() });
     }
 
+    if (url.pathname === '/api/premium-markets') {
+      const premiumResults = await Promise.all(PREMIUM_MARKETS.map(async meta => {
+        try {
+          const apiSymbol = meta.symbol.replace('/', '');
+          const [quote, history] = await Promise.all([getQuote(apiSymbol), getHistory(apiSymbol)]);
+          return analyze(meta.symbol, quote, history);
+        } catch (err) {
+          return {
+            symbol: meta.symbol,
+            displaySymbol: meta.display,
+            marketName: meta.name,
+            category: meta.category,
+            unavailable: true,
+            error: err.message
+          };
+        }
+      }));
+      return json(res, 200, {
+        provider: 'Biquote',
+        premiumOnly: true,
+        markets: premiumResults,
+        serverTime: new Date().toISOString()
+      });
+    }
+
 
     if (url.pathname === '/api/ai' && req.method === 'POST') {
       let body = '';
@@ -323,11 +383,27 @@ const server = http.createServer(async (req, res) => {
       if (question.length > 1200) return json(res, 400, { error: 'Question is too long.' });
 
       const currentMarkets = await markets();
-      const answer = await askAI(question, tier, currentMarkets);
+      let aiMarkets = currentMarkets;
+
+      if (tier === 'premium') {
+        const premiumResults = await Promise.all(PREMIUM_MARKETS.map(async meta => {
+          try {
+            const apiSymbol = meta.symbol.replace('/', '');
+            const [quote, history] = await Promise.all([getQuote(apiSymbol), getHistory(apiSymbol)]);
+            return analyze(meta.symbol, quote, history);
+          } catch {
+            return null;
+          }
+        }));
+        aiMarkets = [...currentMarkets, ...premiumResults.filter(Boolean)];
+      }
+
+      const answer = await askAI(question, tier, aiMarkets);
       return json(res, 200, {
         answer,
         tier,
         premiumActive: tier === 'premium' && process.env.PREMIUM_DEMO === 'true',
+        premiumMarketsIncluded: tier === 'premium',
         generatedAt: new Date().toISOString()
       });
     }

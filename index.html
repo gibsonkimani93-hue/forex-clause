@@ -428,6 +428,52 @@
     .ai-send { min-width:110px; align-self:stretch; }
     .ai-disclaimer { color:#71869c; font-size:11px; margin-top:10px; line-height:1.5; }
 
+    .premium-markets {
+      max-width: 1100px;
+      margin: 25px auto 0;
+      background:#0b1828;
+      border:1px solid #1d3045;
+      border-radius:15px;
+      padding:25px;
+    }
+    .premium-markets-head {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:15px;
+      flex-wrap:wrap;
+      margin-bottom:18px;
+    }
+    .premium-markets-head h3 { margin:0; font-size:22px; }
+    .premium-markets-head p { margin:5px 0 0; color:#8da2b8; font-size:13px; }
+    .premium-market-grid {
+      display:grid;
+      grid-template-columns:repeat(3, 1fr);
+      gap:12px;
+    }
+    .premium-market-card {
+      background:#0e1e30;
+      border:1px solid #1d3045;
+      border-radius:10px;
+      padding:15px;
+    }
+    .premium-market-card .pm-top {
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      align-items:center;
+    }
+    .premium-market-card .pm-symbol { font-weight:800; }
+    .premium-market-card .pm-name { color:#8da2b8; font-size:12px; margin-top:4px; }
+    .premium-market-card .pm-price { font-size:20px; margin:12px 0 3px; }
+    .premium-market-card .pm-details { color:#9aadc2; font-size:12px; line-height:1.7; }
+    @media (max-width: 900px) {
+      .premium-market-grid { grid-template-columns:repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .premium-market-grid { grid-template-columns:1fr; }
+    }
+
     @media (max-width: 900px) {
       .market-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -466,10 +512,110 @@
         font-size: 45px;
       }
     }
-  </style>
+  
+    .premium-banner {
+      position: relative;
+      overflow: hidden;
+      width: min(1100px, calc(100% - 32px));
+      margin: 18px auto 0;
+      padding: 16px 20px;
+      border: 1px solid #2b4662;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #0e2135, #101b2b);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      box-sizing: border-box;
+      box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    }
+    .premium-banner::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -45%;
+      width: 35%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent);
+      transform: skewX(-20deg);
+      animation: premiumShine 3.2s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .premium-banner-copy { min-width: 0; position: relative; z-index: 1; }
+    .premium-banner-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0 0 5px;
+      animation: premiumPulse 2.2s ease-in-out infinite;
+    }
+    .premium-banner-text {
+      margin: 0;
+      color: #a9b9ca;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .premium-moving-items {
+      display: inline-block;
+      white-space: nowrap;
+      animation: premiumTicker 12s linear infinite;
+      padding-left: 100%;
+    }
+    .premium-banner-btn {
+      position: relative;
+      z-index: 1;
+      flex: 0 0 auto;
+      border: 0;
+      border-radius: 9px;
+      padding: 11px 18px;
+      font-weight: 800;
+      cursor: pointer;
+      background: #fff;
+      color: #0c1826;
+      animation: premiumButtonPulse 2s ease-in-out infinite;
+    }
+    .premium-banner-btn:hover {
+      opacity: .9;
+      animation-play-state: paused;
+    }
+    @keyframes premiumShine {
+      0% { left: -45%; }
+      55%, 100% { left: 125%; }
+    }
+    @keyframes premiumPulse {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(4px); }
+    }
+    @keyframes premiumButtonPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.045); }
+    }
+    @keyframes premiumTicker {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+    @media (max-width: 650px) {
+      .premium-banner { flex-direction: column; align-items: stretch; }
+      .premium-banner-btn { width: 100%; }
+    }
+
+</style>
 </head>
 
 <body>
+<div class="premium-banner" id="premiumBanner">
+  <div class="premium-banner-copy">
+    <div class="premium-banner-title">✦ Subscribe to Premium to Trade</div>
+    <p class="premium-banner-text">
+      <span class="premium-moving-items">
+        ✦ SUBSCRIBE TO PREMIUM TO TRADE &nbsp; • &nbsp; US30 &nbsp; • &nbsp; NAS100 &nbsp; • &nbsp; GER40 / DAX &nbsp; • &nbsp; S&amp;P 500 &nbsp; • &nbsp; UK100 &nbsp; • &nbsp; JP225 &nbsp; • &nbsp; GOLD XAUUSD &nbsp; • &nbsp; SILVER XAGUSD &nbsp; • &nbsp; AND OTHER PREMIUM INDICES &amp; METALS &nbsp; • &nbsp;
+      </span>
+    </p>
+  </div>
+  <button class="premium-banner-btn" onclick="document.getElementById('premiumMarkets').scrollIntoView({behavior:'smooth'}); setAITier('premium');">
+    Subscribe to Premium
+  </button>
+</div>
+
 
 <header>
   <div class="logo">
@@ -602,6 +748,28 @@
       <button class="primary ai-send" id="aiSendBtn" onclick="askForexAI()">Ask AI</button>
     </div>
     <div class="ai-disclaimer">AI analysis is educational and does not guarantee trading results or constitute personalized financial advice.</div>
+  </div>
+</section>
+
+<section id="premiumMarkets">
+  <div class="section-title">
+    <h2>Premium Markets</h2>
+    <p>Premium adds major indices and metals while keeping all existing forex markets.</p>
+  </div>
+
+  <div class="premium-markets">
+    <div class="premium-markets-head">
+      <div>
+        <h3>Indices &amp; Metals</h3>
+        <p>Live analysis uses the same trend, momentum, breakout, support/resistance and risk engine.</p>
+      </div>
+      <span class="ai-badge">✦ PREMIUM</span>
+    </div>
+    <div class="premium-market-grid" id="premiumMarketGrid">
+      <div style="grid-column:1/-1;text-align:center;color:#9aadc2;padding:25px">
+        Premium market data loads when Premium mode is selected.
+      </div>
+    </div>
   </div>
 </section>
 
@@ -823,8 +991,9 @@ function setAITier(tier) {
   document.getElementById('freeTierBtn').classList.toggle('active', tier === 'free');
   document.getElementById('premiumTierBtn').classList.toggle('active', tier === 'premium');
   document.getElementById('aiTierNote').textContent = tier === 'premium'
-    ? 'Premium AI: deeper analysis, more detailed reasoning and advanced market context.'
+    ? 'Premium AI: deeper analysis plus indices and metals such as US30, NAS100, GER40, Gold and Silver.'
     : 'Free AI: unlimited questions with concise, basic answers.';
+  if (tier === 'premium') loadPremiumMarkets();
 }
 
 function addAIMessage(role, text) {
@@ -845,6 +1014,52 @@ function handleAIKey(event) {
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault();
     askForexAI();
+  }
+}
+
+function premiumMarketCard(m) {
+  if (m.unavailable) {
+    return `
+      <div class="premium-market-card">
+        <div class="pm-top"><span class="pm-symbol">${m.displaySymbol || m.symbol}</span><span class="signal secondary">UNAVAILABLE</span></div>
+        <div class="pm-name">${m.marketName || ''}</div>
+        <div class="pm-details">This instrument is not currently quoted by the market-data feed.</div>
+      </div>`;
+  }
+
+  const signalClass = m.signal === 'BUY' ? 'buy' : m.signal === 'SELL' ? 'sell' : 'secondary';
+  return `
+    <div class="premium-market-card">
+      <div class="pm-top">
+        <span class="pm-symbol">${m.displaySymbol || m.symbol}</span>
+        <span class="signal ${signalClass}">${m.signal}</span>
+      </div>
+      <div class="pm-name">${m.marketName || ''}</div>
+      <div class="pm-price">${fmt(m.price, m.symbol)}</div>
+      <div class="pm-details">
+        Entry: <b>${fmt(m.entry, m.symbol)}</b> · SL: <b>${fmt(m.stopLoss, m.symbol)}</b><br>
+        TP: <b>${fmt(m.takeProfit, m.symbol)}</b> · R/R: <b>${m.riskReward}</b><br>
+        RSI: <b>${m.indicators?.rsi ?? '—'}</b> · Confidence: <b>${m.confidence}%</b>
+      </div>
+    </div>`;
+}
+
+let premiumMarketsLoaded = false;
+
+async function loadPremiumMarkets() {
+  if (premiumMarketsLoaded) return;
+  const grid = document.getElementById('premiumMarketGrid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#9aadc2;padding:25px">Loading Premium indices and metals…</div>';
+
+  try {
+    const response = await fetch('/api/premium-markets', { cache: 'no-store' });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Premium market request failed');
+    grid.innerHTML = data.markets.map(premiumMarketCard).join('');
+    premiumMarketsLoaded = true;
+  } catch (err) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#ff536b;padding:25px">Premium market feed unavailable: ${err.message}</div>`;
   }
 }
 
@@ -878,9 +1093,9 @@ async function askForexAI() {
 }
 
 function subscribe() {
-  document.getElementById('ai').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('premiumMarkets').scrollIntoView({ behavior: 'smooth' });
   setAITier('premium');
-  alert('Premium payments are not connected yet. The Premium AI interface is ready for the subscription system.');
+  alert('Premium subscription payments are still being connected. The Premium market interface is ready and now includes indices and metals.');
 }
 
 loadMarkets();
