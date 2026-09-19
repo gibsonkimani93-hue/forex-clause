@@ -952,7 +952,7 @@ function card(m) {
       <div class="details">
         <div class="detail"><span>Entry</span><b>${fmt(m.entry, m.symbol)}</b></div>
         <div class="detail"><span>Stop Loss</span><b>${fmt(m.stopLoss, m.symbol)}</b></div>
-        <div class="detail"><span>Take Profit</span><b>${fmt(m.takeProfit, m.symbol)}</b></div>
+        <div class="detail"><span>Take Profit (TP1)</span><b>${fmt(m.takeProfit1 ?? m.takeProfit, m.symbol)}</b></div>
         <div class="detail"><span>Risk/Reward</span><b>${m.riskReward}</b></div>
         <div class="detail"><span>RSI</span><b>${m.indicators.rsi}</b></div>
       </div>
@@ -1038,7 +1038,8 @@ function premiumMarketCard(m) {
       <div class="pm-price">${fmt(m.price, m.symbol)}</div>
       <div class="pm-details">
         Entry: <b>${fmt(m.entry, m.symbol)}</b> · SL: <b>${fmt(m.stopLoss, m.symbol)}</b><br>
-        TP: <b>${fmt(m.takeProfit, m.symbol)}</b> · R/R: <b>${m.riskReward}</b><br>
+        TP1: <b>${fmt(m.takeProfit1 ?? m.takeProfit, m.symbol)}</b> · TP2: <b>${fmt(m.takeProfit2 ?? m.takeProfit, m.symbol)}</b><br>
+        TP3: <b>${fmt(m.takeProfit3 ?? m.takeProfit, m.symbol)}</b> · R/R: <b>${m.riskReward}</b><br>
         RSI: <b>${m.indicators?.rsi ?? '—'}</b> · Confidence: <b>${m.confidence}%</b>
       </div>
     </div>`;

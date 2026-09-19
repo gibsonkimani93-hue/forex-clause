@@ -193,10 +193,34 @@ function analyze(symbol, quote, history) {
   const direction = signal === 'SELL' ? -1 : signal === 'BUY' ? 1 : 0;
   const entry = price;
   const atrValue = volatility || price * 0.002;
-  const risk = atrValue * 1.25;
-  const reward = risk * 2;
+
+  // Closer, structure-aware targets. The first target is intentionally
+  // conservative, but no market target can be guaranteed.
+  const risk = atrValue * 1.10;
   const sl = direction === 0 ? entry - risk : entry - direction * risk;
-  const tp = direction === 0 ? entry + reward : entry + direction * reward;
+
+  const roomToStructure = direction === 1 && recentHigh != null && recentHigh > entry
+    ? recentHigh - entry
+    : direction === -1 && recentLow != null && recentLow < entry
+      ? entry - recentLow
+      : null;
+
+  const targetAtR = r => entry + direction * (risk * r);
+  const targetAtDistance = distance => entry + direction * distance;
+
+  let tp1 = direction === 0 ? entry + risk * 0.80 : targetAtR(0.80);
+  let tp2 = direction === 0 ? entry + risk * 1.20 : targetAtR(1.20);
+  let tp3 = direction === 0 ? entry + risk * 1.80 : targetAtR(1.80);
+
+  if (direction !== 0 && roomToStructure != null && roomToStructure > 0) {
+    tp1 = targetAtDistance(Math.min(risk * 0.80, roomToStructure * 0.60));
+    tp2 = targetAtDistance(Math.min(risk * 1.20, roomToStructure * 0.90));
+    tp3 = targetAtDistance(Math.min(risk * 1.80, roomToStructure));
+  }
+
+  // Standard/free dashboard uses the conservative first target.
+  const tp = tp1;
+  const riskReward = direction === 0 ? '1 : 0.8' : '1 : 0.8 (TP1)';
   const confidence = Math.max(50, Math.min(94, Math.round(52 + Math.abs(totalScore) * 7 + Math.abs(momentum - 50) * 0.22)));
 
   const meta = PREMIUM_MARKETS.find(m => m.symbol === symbol);
@@ -209,7 +233,8 @@ function analyze(symbol, quote, history) {
     signal, price: round(price, places),
     change: quote.dayDiffPercent != null ? Number(quote.dayDiffPercent) : null,
     entry: round(entry, places), stopLoss: round(sl, places), takeProfit: round(tp, places),
-    riskReward: '1 : 2.0', confidence,
+    takeProfit1: round(tp1, places), takeProfit2: round(tp2, places), takeProfit3: round(tp3, places),
+    riskReward, confidence,
     indicators: {
       rsi: round(momentum, 1), sma20: fast ? round(fast, places) : null, sma50: slow ? round(slow, places) : null,
       atr: round(atrValue, places), recent20High: recentHigh != null ? round(recentHigh, places) : null,
@@ -273,7 +298,7 @@ function premiumFallback(question, marketsData) {
   const support = (m.supportingStrategies || []).join(', ') || 'None';
   const oppose = (m.opposingStrategies || []).join(', ') || 'None';
   const opposite = m.signal === 'BUY' ? 'SELL' : m.signal === 'SELL' ? 'BUY' : 'a directional trade';
-  return `PREMIUM MARKET ANALYSIS — ${m.symbol}\n\nSIGNAL: ${m.signal}\n\nWHY ${m.signal}?\n${(m.reasons || []).map(x => `• ${x}`).join('\n')}\n\nSTRATEGY ENGINE\nPrimary strategy: ${m.primaryStrategy}\nCombined strategy: ${m.strategy}\nTotal strategy score: ${m.score}\n\nSTRATEGY-BY-STRATEGY BREAKDOWN\n${strategyLines}\n\nWHY NOT ${opposite}?\nThe engine compared the independent strategies rather than using one fixed rule. Supporting strategies: ${support}. Opposing strategies: ${oppose}. If the opposing evidence strengthens, the signal can change.\n\nINDICATOR EVIDENCE\n• RSI: ${i.rsi ?? 'unavailable'}\n• SMA20: ${i.sma20 ?? 'unavailable'}\n• SMA50: ${i.sma50 ?? 'unavailable'}\n• Current price: ${m.price}\n• Recent 20-bar high: ${i.recent20High ?? 'unavailable'}\n• Recent 20-bar low: ${i.recent20Low ?? 'unavailable'}\n\nLEVELS & RISK\n• Entry/reference: ${m.entry}\n• Stop loss: ${m.stopLoss}\n• Take profit: ${m.takeProfit}\n• Risk/reward: ${m.riskReward}\n\nCONFIDENCE\nDashboard confidence: ${m.confidence}/100. This is a signal-strength metric, not a probability of profit.\n\nThis analysis is educational and does not guarantee a trading result.`;
+  return `PREMIUM MARKET ANALYSIS — ${m.symbol}\n\nSIGNAL: ${m.signal}\n\nWHY ${m.signal}?\n${(m.reasons || []).map(x => `• ${x}`).join('\n')}\n\nSTRATEGY ENGINE\nPrimary strategy: ${m.primaryStrategy}\nCombined strategy: ${m.strategy}\nTotal strategy score: ${m.score}\n\nSTRATEGY-BY-STRATEGY BREAKDOWN\n${strategyLines}\n\nWHY NOT ${opposite}?\nThe engine compared the independent strategies rather than using one fixed rule. Supporting strategies: ${support}. Opposing strategies: ${oppose}. If the opposing evidence strengthens, the signal can change.\n\nINDICATOR EVIDENCE\n• RSI: ${i.rsi ?? 'unavailable'}\n• SMA20: ${i.sma20 ?? 'unavailable'}\n• SMA50: ${i.sma50 ?? 'unavailable'}\n• Current price: ${m.price}\n• Recent 20-bar high: ${i.recent20High ?? 'unavailable'}\n• Recent 20-bar low: ${i.recent20Low ?? 'unavailable'}\n\nLEVELS & RISK\n• Entry/reference: ${m.entry}\n• Stop loss: ${m.stopLoss}\n• TP1 (conservative): ${m.takeProfit1 ?? m.takeProfit}\n• TP2 (main): ${m.takeProfit2 ?? 'unavailable'}\n• TP3 (extended): ${m.takeProfit3 ?? 'unavailable'}\n• Risk/reward: ${m.riskReward}\n\nCONFIDENCE\nDashboard confidence: ${m.confidence}/100. This is a signal-strength metric, not a probability of profit.\n\nThis analysis is educational and does not guarantee a trading result.`;
 }
 async function askAI(question, tier, marketsData) {
   const key = process.env.OPENAI_API_KEY;
@@ -284,6 +309,7 @@ async function askAI(question, tier, marketsData) {
   const marketContext = JSON.stringify(marketsData.map(m => ({
     symbol: m.symbol, signal: m.signal, price: m.price, change: m.change,
     entry: m.entry, stopLoss: m.stopLoss, takeProfit: m.takeProfit,
+    takeProfit1: m.takeProfit1, takeProfit2: m.takeProfit2, takeProfit3: m.takeProfit3,
     riskReward: m.riskReward, confidence: m.confidence, indicators: m.indicators,
     strategy: m.strategy, primaryStrategy: m.primaryStrategy, score: m.score, strategies: m.strategies, supportingStrategies: m.supportingStrategies, opposingStrategies: m.opposingStrategies, reasons: m.reasons
   })));
@@ -298,7 +324,7 @@ For every question about a trade, signal, or why the market is BUY/SELL/WAIT, st
 2. WHY — give the concrete evidence from the supplied data, including RSI, SMA20 vs SMA50, recent price movement, and recent 20-bar high/low when relevant.
 3. STRATEGY USED — name the primary strategy and the confirming strategies from the independent strategy engine. Explain the actual conditions that triggered each one. Do not pretend that one hard-coded strategy was used.
 4. WHY NOT THE OPPOSITE — explain which evidence argues against the opposite direction, or say that the data is mixed.
-5. LEVELS & RISK — show the supplied entry, stop loss, take profit and risk/reward, and explain invalidation without presenting them as guarantees.
+5. LEVELS & RISK — show the supplied entry, stop loss, and Premium TP1/TP2/TP3 when available. Explain that TP1 is the conservative first target, TP2 the main target, and TP3 the extended target. Do not present any level as a guarantee.
 6. CONFIDENCE — report the supplied confidence as a dashboard metric and explain that it is not a probability of profit.
 
 Do not hide the reasoning behind vague phrases like 'the market looks bullish'. Tie every conclusion to an actual supplied value.
