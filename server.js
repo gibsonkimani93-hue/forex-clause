@@ -363,6 +363,15 @@ This is educational information, not personalized financial advice.`;
   return extractOutputText(data) || (premium ? premiumFallback(question, marketsData) : basicFallback(question, marketsData));
 }
 
+// Premium access is intentionally server-side.
+// Selecting the Premium UI tier is NOT proof of payment.
+// Replace this function with your real payment/session entitlement check
+// (e.g. M-Pesa/PayPal webhook + authenticated customer session) before launch.
+function hasPremiumAccess(req) {
+  // Local-only testing switch. Keep PREMIUM_DEMO=false in production.
+  return process.env.PREMIUM_DEMO === 'true' && process.env.NODE_ENV !== 'production';
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
@@ -371,6 +380,12 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/premium-markets') {
+      if (!hasPremiumAccess(req)) {
+        return json(res, 402, {
+          error: 'Premium access requires a confirmed paid subscription.',
+          premiumRequired: true
+        });
+      }
       const premiumResults = await Promise.all(PREMIUM_MARKETS.map(async meta => {
         try {
           const apiSymbol = meta.symbol.replace('/', '');
@@ -405,6 +420,12 @@ const server = http.createServer(async (req, res) => {
 
       const question = String(payload.question || '').trim();
       const tier = payload.tier === 'premium' ? 'premium' : 'free';
+      if (tier === 'premium' && !hasPremiumAccess(req)) {
+        return json(res, 402, {
+          error: 'Premium AI requires a confirmed paid subscription.',
+          premiumRequired: true
+        });
+      }
       if (!question) return json(res, 400, { error: 'Please enter a question.' });
       if (question.length > 1200) return json(res, 400, { error: 'Question is too long.' });
 
@@ -428,7 +449,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, {
         answer,
         tier,
-        premiumActive: tier === 'premium' && process.env.PREMIUM_DEMO === 'true',
+        premiumActive: tier === 'premium' && hasPremiumAccess(req),
         premiumMarketsIncluded: tier === 'premium',
         generatedAt: new Date().toISOString()
       });

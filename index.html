@@ -763,11 +763,11 @@
         <h3>Indices &amp; Metals</h3>
         <p>Live analysis uses the same trend, momentum, breakout, support/resistance and risk engine.</p>
       </div>
-      <span class="ai-badge">✦ PREMIUM</span>
+      <span class="ai-badge">🔒 PREMIUM — PAYMENT REQUIRED</span>
     </div>
     <div class="premium-market-grid" id="premiumMarketGrid">
       <div style="grid-column:1/-1;text-align:center;color:#9aadc2;padding:25px">
-        Premium market data loads when Premium mode is selected.
+        🔒 Premium markets are locked. A confirmed Premium payment is required to access indices and metals.
       </div>
     </div>
   </div>
@@ -985,8 +985,18 @@ async function loadMarkets(manual = false) {
 }
 
 let aiTier = 'free';
+let premiumAccess = false;
 
 function setAITier(tier) {
+  if (tier === 'premium' && !premiumAccess) {
+    document.getElementById('premiumTierBtn').classList.remove('active');
+    document.getElementById('freeTierBtn').classList.add('active');
+    document.getElementById('aiTierNote').textContent =
+      'Premium is locked. Complete a Premium payment and wait for payment confirmation before access is granted.';
+    document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+
   aiTier = tier;
   document.getElementById('freeTierBtn').classList.toggle('active', tier === 'free');
   document.getElementById('premiumTierBtn').classList.toggle('active', tier === 'premium');
@@ -1082,6 +1092,11 @@ async function askForexAI() {
       body: JSON.stringify({ question, tier: aiTier })
     });
     const data = await response.json();
+    if (response.status === 402) {
+      addAIMessage('assistant', 'Premium is locked. Please complete your Premium payment first. Selecting Premium alone does not unlock paid features.');
+      setAITier('free');
+      return;
+    }
     if (!response.ok) throw new Error(data.error || 'AI request failed.');
     addAIMessage('assistant', data.answer);
   } catch (err) {
