@@ -14,3 +14,14 @@ The AI must not invent indicators or news that are not supplied by the server.
 
 
 IMPORTANT V2: Premium has a deterministic detailed fallback, so even without an OpenAI key it explains the signal, strategy, indicator evidence, opposite-direction logic, levels, and confidence.
+
+
+ACCESS CONTROL FIX
+- Premium indices/metals are now locked by default.
+- Selecting the Premium AI button does NOT grant access.
+- The /api/premium-markets endpoint rejects unpaid requests.
+- Premium AI requests are also rejected unless the server confirms entitlement.
+- PREMIUM_DEMO defaults to false.
+- Before launch, connect the server-side hasPremiumAccess(req) function to your real
+  payment confirmation and authenticated customer session (for example, an M-Pesa/PayPal
+  payment webhook plus a server-side subscription record).

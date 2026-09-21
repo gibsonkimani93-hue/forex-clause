@@ -451,6 +451,39 @@
       grid-template-columns:repeat(3, 1fr);
       gap:12px;
     }
+
+    .trade-copy-row {
+      display:flex;
+      gap:7px;
+      flex-wrap:wrap;
+      margin-top:12px;
+      padding-top:10px;
+      border-top:1px solid #1d3045;
+    }
+    .copy-btn {
+      border:1px solid #2a4058;
+      background:#12263b;
+      color:#dce9f7;
+      border-radius:7px;
+      padding:7px 9px;
+      font-size:11px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .copy-btn:hover {
+      background:#193650;
+    }
+    .copy-btn.copy-all {
+      border-color:#20d77a;
+      color:#20d77a;
+    }
+    .copy-status {
+      width:100%;
+      color:#8da2b8;
+      font-size:11px;
+      min-height:14px;
+    }
+
     .premium-market-card {
       background:#0e1e30;
       border:1px solid #1d3045;
@@ -960,6 +993,13 @@ function card(m) {
         Confidence: ${m.confidence}%
         <div class="bar"><div class="bar-fill" style="width:${m.confidence}%"></div></div>
       </div>
+      <div class="trade-copy-row">
+        <button class="copy-btn" onclick='copyTradeValue(${JSON.stringify(fmt(m.entry, m.symbol))}, "Entry")'>Copy Entry</button>
+        <button class="copy-btn" onclick='copyTradeValue(${JSON.stringify(fmt(m.stopLoss, m.symbol))}, "Stop Loss")'>Copy SL</button>
+        <button class="copy-btn" onclick='copyTradeValue(${JSON.stringify(fmt(m.takeProfit1 ?? m.takeProfit, m.symbol))}, "Take Profit")'>Copy TP</button>
+        <button class="copy-btn copy-all" onclick='copyTradeSetup(${JSON.stringify(m.symbol)}, ${JSON.stringify(m.signal)}, ${JSON.stringify(fmt(m.entry, m.symbol))}, ${JSON.stringify(fmt(m.stopLoss, m.symbol))}, ${JSON.stringify(fmt(m.takeProfit1 ?? m.takeProfit, m.symbol))})'>Copy Trade Setup</button>
+        <span class="copy-status" id="copyStatus-${m.symbol.replace(/[^a-zA-Z0-9]/g, '')}"></span>
+      </div>
     </div>`;
 }
 
@@ -1004,6 +1044,57 @@ function setAITier(tier) {
     ? 'Premium AI: deeper analysis plus indices and metals such as US30, NAS100, GER40, Gold and Silver.'
     : 'Free AI: unlimited questions with concise, basic answers.';
   if (tier === 'premium') loadPremiumMarkets();
+}
+
+async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const area = document.createElement('textarea');
+  area.value = text;
+  area.style.position = 'fixed';
+  area.style.opacity = '0';
+  document.body.appendChild(area);
+  area.focus();
+  area.select();
+  document.execCommand('copy');
+  area.remove();
+}
+
+async function copyTradeValue(value, label) {
+  try {
+    await copyText(value);
+    showCopyFeedback(`Copied ${label}: ${value}`);
+  } catch (err) {
+    showCopyFeedback('Copy failed — select and copy the number manually.');
+  }
+}
+
+async function copyTradeSetup(symbol, signal, entry, stopLoss, takeProfit) {
+  const setup = [
+    `Forex Clause — ${symbol}`,
+    `Signal: ${signal}`,
+    `Entry: ${entry}`,
+    `Stop Loss: ${stopLoss}`,
+    `Take Profit: ${takeProfit}`
+  ].join('\n');
+  try {
+    await copyText(setup);
+    showCopyFeedback('Trade setup copied — paste it into your trading platform.');
+  } catch (err) {
+    showCopyFeedback('Copy failed — please copy the values manually.');
+  }
+}
+
+function showCopyFeedback(message) {
+  const active = document.activeElement;
+  const card = active ? active.closest('.market-card, .premium-market-card') : null;
+  const status = card ? card.querySelector('.copy-status') : null;
+  if (!status) return;
+  status.textContent = message;
+  clearTimeout(status._copyTimer);
+  status._copyTimer = setTimeout(() => { status.textContent = ''; }, 3000);
 }
 
 function addAIMessage(role, text) {
@@ -1051,6 +1142,13 @@ function premiumMarketCard(m) {
         TP1: <b>${fmt(m.takeProfit1 ?? m.takeProfit, m.symbol)}</b> · TP2: <b>${fmt(m.takeProfit2 ?? m.takeProfit, m.symbol)}</b><br>
         TP3: <b>${fmt(m.takeProfit3 ?? m.takeProfit, m.symbol)}</b> · R/R: <b>${m.riskReward}</b><br>
         RSI: <b>${m.indicators?.rsi ?? '—'}</b> · Confidence: <b>${m.confidence}%</b>
+      </div>
+      <div class="trade-copy-row">
+        <button class="copy-btn" onclick='copyTradeValue(${JSON.stringify(fmt(m.entry, m.symbol))}, "Entry")'>Copy Entry</button>
+        <button class="copy-btn" onclick='copyTradeValue(${JSON.stringify(fmt(m.stopLoss, m.symbol))}, "Stop Loss")'>Copy SL</button>
+        <button class="copy-btn" onclick='copyTradeValue(${JSON.stringify(fmt(m.takeProfit1 ?? m.takeProfit, m.symbol))}, "Take Profit")'>Copy TP</button>
+        <button class="copy-btn copy-all" onclick='copyTradeSetup(${JSON.stringify(m.displaySymbol || m.symbol)}, ${JSON.stringify(m.signal)}, ${JSON.stringify(fmt(m.entry, m.symbol))}, ${JSON.stringify(fmt(m.stopLoss, m.symbol))}, ${JSON.stringify(fmt(m.takeProfit1 ?? m.takeProfit, m.symbol))})'>Copy Trade Setup</button>
+        <span class="copy-status"></span>
       </div>
     </div>`;
 }
