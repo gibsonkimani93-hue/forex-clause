@@ -129,6 +129,22 @@ function analyze(symbol, quote, history) {
   const previousClose = closes.length >= 2 ? closes[closes.length - 2] : null;
   const lastMove = previousClose != null ? price - previousClose : 0;
 
+  // Participation/liquidity confirmation. Spot-forex volume is not centralized,
+  // so use provider volume when available; otherwise use recent candle range as
+  // an activity proxy. This prevents a directional signal from being treated as
+  // fully confirmed when the market is unusually inactive.
+  const volumeValues = chronologicalBars.map(b => Number(b.volume)).filter(Number.isFinite);
+  const hasVolume = volumeValues.length >= 20;
+  const recentVolume = hasVolume ? volumeValues.slice(-5).reduce((a,b) => a+b, 0) / 5 : null;
+  const priorVolume = hasVolume ? volumeValues.slice(-25, -5).reduce((a,b) => a+b, 0) / 20 : null;
+  const volumeRatio = hasVolume && priorVolume > 0 ? recentVolume / priorVolume : null;
+  const rangeValues = chronologicalBars.slice(-25).map(b => Math.abs(Number(b.high)-Number(b.low))).filter(Number.isFinite);
+  const recentRange = rangeValues.length >= 5 ? rangeValues.slice(-5).reduce((a,b) => a+b, 0)/5 : null;
+  const priorRange = rangeValues.length >= 25 ? rangeValues.slice(-25,-5).reduce((a,b) => a+b, 0)/20 : null;
+  const activityRatio = hasVolume && volumeRatio != null ? volumeRatio : (priorRange > 0 ? recentRange / priorRange : null);
+  const participationStrong = activityRatio != null && activityRatio >= 1.05;
+  const participationWeak = activityRatio != null && activityRatio < 0.90;
+
   // Each strategy is evaluated independently. The final signal is based on
   // the combined evidence, while Premium receives every strategy's evidence.
   const strategies = [];
@@ -176,8 +192,19 @@ function analyze(symbol, quote, history) {
     `Latest hourly candle closed ${bullishCandle ? 'above' : bearishCandle ? 'below' : 'at'} its open.`,
     bullishCandle || bearishCandle ? 'active' : 'neutral');
 
-  const totalScore = strategies.reduce((sum, s) => sum + s.score, 0);
+  const rawScore = strategies.reduce((sum, s) => sum + s.score, 0);
+  // Require participation/activity confirmation before publishing a directional
+  // signal. This is a filter, not a guarantee of success.
+  const participationDirection = rawScore > 0 ? 'BUY' : rawScore < 0 ? 'SELL' : 'WAIT';
+  const participationFilter = participationWeak ? 'weak' : participationStrong ? 'strong' : 'neutral';
+  const totalScore = participationFilter === 'weak' ? 0 : rawScore;
   const signal = totalScore >= 3 ? 'BUY' : totalScore <= -3 ? 'SELL' : 'WAIT';
+  if (participationFilter === 'weak' && participationDirection !== 'WAIT') {
+    strategies.push({ name: 'Participation filter', direction: 'WAIT', score: 0, evidence: `Market activity is weak (${round(activityRatio, 2)}x its recent baseline), so the directional setup is held back.`, status: 'warning' });
+  } else if (participationFilter === 'strong' && participationDirection !== 'WAIT') {
+    strategies.push({ name: 'Participation confirmation', direction: participationDirection, score: 1, evidence: `Market activity is ${round(activityRatio, 2)}x its recent baseline, providing participation confirmation.`, status: 'active' });
+  }
+
   const supporting = strategies.filter(s => (signal === 'BUY' && s.score > 0) || (signal === 'SELL' && s.score < 0));
   const opposing = strategies.filter(s => (signal === 'BUY' && s.score < 0) || (signal === 'SELL' && s.score > 0));
   const ranked = [...strategies].sort((a,b) => Math.abs(b.score) - Math.abs(a.score));
@@ -238,7 +265,10 @@ function analyze(symbol, quote, history) {
     indicators: {
       rsi: round(momentum, 1), sma20: fast ? round(fast, places) : null, sma50: slow ? round(slow, places) : null,
       atr: round(atrValue, places), recent20High: recentHigh != null ? round(recentHigh, places) : null,
-      recent20Low: recentLow != null ? round(recentLow, places) : null
+      recent20Low: recentLow != null ? round(recentLow, places) : null,
+      participation: participationFilter,
+      activityRatio: activityRatio != null ? round(activityRatio, 2) : null,
+      volumeAvailable: hasVolume
     },
     strategy, primaryStrategy: primary?.name || 'None',
     strategies, supportingStrategies: supporting.map(s => s.name), opposingStrategies: opposing.map(s => s.name),
