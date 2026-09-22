@@ -982,6 +982,7 @@ function card(m) {
       </div>
       <div class="price">${fmt(m.price, m.symbol)}</div>
       <div class="${changeClass}">${change}</div>
+      ${m.tradeStatus && m.tradeStatus !== 'No directional invalidation detected' ? `<div class="trade-status" style="margin-top:8px;font-size:12px;font-weight:700;">${m.tradeStatus}</div>` : ''}
       <div class="details">
         <div class="detail"><span>Entry</span><b>${fmt(m.entry, m.symbol)}</b></div>
         <div class="detail"><span>Stop Loss</span><b>${fmt(m.stopLoss, m.symbol)}</b></div>
@@ -1137,6 +1138,7 @@ function premiumMarketCard(m) {
       </div>
       <div class="pm-name">${m.marketName || ''}</div>
       <div class="pm-price">${fmt(m.price, m.symbol)}</div>
+      ${m.tradeStatus && m.tradeStatus !== 'No directional invalidation detected' ? `<div class="pm-details"><b>${m.tradeStatus}</b></div>` : ''}
       <div class="pm-details">
         Entry: <b>${fmt(m.entry, m.symbol)}</b> · SL: <b>${fmt(m.stopLoss, m.symbol)}</b><br>
         TP1: <b>${fmt(m.takeProfit1 ?? m.takeProfit, m.symbol)}</b> · TP2: <b>${fmt(m.takeProfit2 ?? m.takeProfit, m.symbol)}</b><br>

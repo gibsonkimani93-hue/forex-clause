@@ -217,6 +217,19 @@ function analyze(symbol, quote, history) {
   if (opposing.length) reasons.push(`Opposing evidence: ${opposing.map(s => `${s.name} (${s.direction})`).join(', ')}.`);
   if (!reasons.length) reasons.push('The strategy scores are mixed, so there is no strong directional confirmation.');
 
+  // Existing-trade warning: a current opposite-direction confirmation can invalidate
+  // the original setup. This is a review/exit consideration, not an automatic close.
+  const bullishReversalEvidence = bearishCandle && momentum < 48 && (participationStrong || lastMove < 0);
+  const bearishReversalEvidence = bullishCandle && momentum > 52 && (participationStrong || lastMove > 0);
+  let tradeStatus = 'No directional invalidation detected';
+  if (signal === 'SELL' && bullishReversalEvidence) {
+    tradeStatus = 'BUY invalidated — consider possible exit';
+  } else if (signal === 'BUY' && bearishReversalEvidence) {
+    tradeStatus = 'SELL invalidated — consider possible exit';
+  } else if (signal === 'WAIT') {
+    tradeStatus = 'Retest / uncertainty — wait for confirmation';
+  }
+
   const direction = signal === 'SELL' ? -1 : signal === 'BUY' ? 1 : 0;
   const entry = price;
   const atrValue = volatility || price * 0.002;
@@ -272,7 +285,7 @@ function analyze(symbol, quote, history) {
     },
     strategy, primaryStrategy: primary?.name || 'None',
     strategies, supportingStrategies: supporting.map(s => s.name), opposingStrategies: opposing.map(s => s.name),
-    score: totalScore, reasons, updatedAt: new Date().toISOString()
+    score: totalScore, reasons, tradeStatus, reversalWarning: (signal === 'SELL' && bullishReversalEvidence) || (signal === 'BUY' && bearishReversalEvidence), updatedAt: new Date().toISOString()
   };
 }
 async function markets() {
