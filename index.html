@@ -507,6 +507,65 @@
       .premium-market-grid { grid-template-columns:1fr; }
     }
 
+
+    .signal-history {
+      max-width: 1100px;
+      margin: 25px auto 0;
+      background:#0b1828;
+      border:1px solid #1d3045;
+      border-radius:15px;
+      padding:25px;
+    }
+    .signal-history-head {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:15px;
+      flex-wrap:wrap;
+      margin-bottom:18px;
+    }
+    .signal-history-head h3 { margin:0; font-size:22px; }
+    .signal-history-head p { margin:5px 0 0; color:#8da2b8; font-size:13px; }
+    .history-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .history-empty {
+      text-align:center;
+      color:#8da2b8;
+      padding:25px 10px;
+      border:1px dashed #29435e;
+      border-radius:10px;
+    }
+    .history-table-wrap { overflow:auto; }
+    .history-table {
+      width:100%;
+      border-collapse:collapse;
+      min-width:820px;
+      font-size:12px;
+    }
+    .history-table th,
+    .history-table td {
+      border-bottom:1px solid #1d3045;
+      padding:10px 8px;
+      text-align:left;
+      white-space:nowrap;
+    }
+    .history-table th { color:#8da2b8; font-weight:700; }
+    .history-table td { color:#d8e3ed; }
+    .history-buy { color:#20d77a !important; font-weight:800; }
+    .history-sell { color:#ff536b !important; font-weight:800; }
+    .history-open { color:#65b7ff !important; font-weight:800; }
+    .history-closed { color:#c6d0da !important; font-weight:800; }
+    .history-note {
+      margin-top:12px;
+      color:#71869c;
+      font-size:11px;
+      line-height:1.5;
+    }
+    .history-reason {
+      max-width:330px;
+      white-space:normal !important;
+      line-height:1.45;
+    }
+
     @media (max-width: 900px) {
       .market-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -743,6 +802,34 @@
 </section>
 
 
+
+
+<section id="signalHistory">
+  <div class="section-title">
+    <h2>Signal History</h2>
+    <p>Every directional signal is saved with the original entry, TP and SL.</p>
+  </div>
+
+  <div class="signal-history">
+    <div class="signal-history-head">
+      <div>
+        <h3>Trade Journal</h3>
+        <p>TP and SL are locked to the values shown when the signal was first recorded.</p>
+      </div>
+      <div class="history-actions">
+        <button class="secondary" onclick="refreshSignalHistory()">Refresh History</button>
+        <button class="secondary" onclick="clearSignalHistory()">Clear History</button>
+      </div>
+    </div>
+    <div id="signalHistoryContent">
+      <div class="history-empty">No directional signals have been recorded yet.</div>
+    </div>
+    <div class="history-note">
+      History is stored in this browser. A signal is recorded when a BUY/SELL setup appears; later TP recalculations do not overwrite the original recorded TP. 
+      Status updates are based on the live prices observed by the dashboard.
+    </div>
+  </div>
+</section>
 
 <section id="ai">
   <div class="section-title">
@@ -1013,6 +1100,7 @@ async function loadMarkets(manual = false) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Market data request failed');
     marketGrid.innerHTML = data.markets.map(card).join('');
+    trackMarketSignals(data.markets);
     marketStatus.textContent = '● LIVE — Biquote market feed connected';
     marketStatus.style.color = '#20d77a';
     lastUpdated.textContent = `Last updated: ${new Date(data.serverTime).toLocaleString()}`;
@@ -1213,6 +1301,176 @@ function subscribe() {
   setAITier('premium');
   alert('Premium subscription payments are still being connected. The Premium market interface is ready and now includes indices and metals.');
 }
+
+
+const SIGNAL_HISTORY_KEY = 'forexClauseSignalHistoryV1';
+const MAX_SIGNAL_HISTORY = 100;
+
+function getSignalHistory() {
+  try {
+    const raw = localStorage.getItem(SIGNAL_HISTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSignalHistory(history) {
+  try {
+    localStorage.setItem(SIGNAL_HISTORY_KEY, JSON.stringify(history.slice(0, MAX_SIGNAL_HISTORY)));
+  } catch {}
+}
+
+function historyNumber(value, symbol) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '—';
+  return fmt(n, symbol);
+}
+
+function trackMarketSignals(markets) {
+  const history = getSignalHistory();
+  let changed = false;
+
+  for (const m of markets || []) {
+    if (!m || !m.symbol || !['BUY', 'SELL'].includes(m.signal)) continue;
+
+    const openForSymbol = history.find(h => h.symbol === m.symbol && h.status === 'OPEN');
+    const latestForSymbol = history.find(h => h.symbol === m.symbol);
+
+    // If the existing open setup has changed direction, close the old snapshot
+    // and start a new signal. A TP recalculation alone never changes the snapshot.
+    if (openForSymbol && openForSymbol.signal !== m.signal) {
+      openForSymbol.status = 'SIGNAL CHANGED';
+      openForSymbol.closedAt = new Date().toISOString();
+      openForSymbol.closeReason = `Dashboard direction changed to ${m.signal}.`;
+      changed = true;
+    }
+
+    const stillOpen = history.find(h => h.symbol === m.symbol && h.status === 'OPEN' && h.signal === m.signal);
+    if (!stillOpen) {
+      const record = {
+        id: `${m.symbol}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        symbol: m.symbol,
+        signal: m.signal,
+        entry: Number(m.entry),
+        stopLoss: Number(m.stopLoss),
+        takeProfit: Number(m.takeProfit1 ?? m.takeProfit),
+        confidence: Number(m.confidence),
+        strategy: m.strategy || 'Not specified',
+        reasons: Array.isArray(m.reasons) ? m.reasons.slice(0, 4) : [],
+        createdAt: m.updatedAt || new Date().toISOString(),
+        status: 'OPEN',
+        lastObservedPrice: Number(m.price)
+      };
+      history.unshift(record);
+      changed = true;
+    }
+
+    // Evaluate the oldest/current open snapshot for this symbol.
+    const active = history.find(h => h.symbol === m.symbol && h.status === 'OPEN');
+    if (!active) continue;
+
+    const price = Number(m.price);
+    const tp = Number(active.takeProfit);
+    const sl = Number(active.stopLoss);
+    if (!Number.isFinite(price) || !Number.isFinite(tp) || !Number.isFinite(sl)) continue;
+
+    active.lastObservedPrice = price;
+    active.lastCheckedAt = new Date().toISOString();
+
+    if (active.signal === 'BUY') {
+      if (price >= tp) {
+        active.status = 'TP HIT';
+        active.closedAt = new Date().toISOString();
+        active.closePrice = price;
+        active.closeReason = 'Observed market price reached or exceeded the recorded TP.';
+        changed = true;
+      } else if (price <= sl) {
+        active.status = 'SL HIT';
+        active.closedAt = new Date().toISOString();
+        active.closePrice = price;
+        active.closeReason = 'Observed market price reached or fell below the recorded SL.';
+        changed = true;
+      }
+    } else if (active.signal === 'SELL') {
+      if (price <= tp) {
+        active.status = 'TP HIT';
+        active.closedAt = new Date().toISOString();
+        active.closePrice = price;
+        active.closeReason = 'Observed market price reached or fell below the recorded TP.';
+        changed = true;
+      } else if (price >= sl) {
+        active.status = 'SL HIT';
+        active.closedAt = new Date().toISOString();
+        active.closePrice = price;
+        active.closeReason = 'Observed market price reached or exceeded the recorded SL.';
+        changed = true;
+      }
+    }
+  }
+
+  if (changed) saveSignalHistory(history);
+  renderSignalHistory(history);
+}
+
+function historyStatusClass(status) {
+  return status === 'OPEN' ? 'history-open' : 'history-closed';
+}
+
+function renderSignalHistory(history = getSignalHistory()) {
+  const box = document.getElementById('signalHistoryContent');
+  if (!box) return;
+
+  if (!history.length) {
+    box.innerHTML = '<div class="history-empty">No directional signals have been recorded yet.</div>';
+    return;
+  }
+
+  const rows = history.map(h => {
+    const directionClass = h.signal === 'BUY' ? 'history-buy' : 'history-sell';
+    const reason = Array.isArray(h.reasons) && h.reasons.length
+      ? h.reasons.join(' ')
+      : 'No detailed reason was saved.';
+    return `
+      <tr>
+        <td>${new Date(h.createdAt).toLocaleString()}</td>
+        <td><b>${h.symbol}</b></td>
+        <td class="${directionClass}">${h.signal}</td>
+        <td>${historyNumber(h.entry, h.symbol)}</td>
+        <td>${historyNumber(h.stopLoss, h.symbol)}</td>
+        <td>${historyNumber(h.takeProfit, h.symbol)}</td>
+        <td>${Number.isFinite(Number(h.confidence)) ? `${Number(h.confidence)}%` : '—'}</td>
+        <td>${h.status}</td>
+        <td class="history-reason"><b>${h.strategy || '—'}</b><br>${reason}</td>
+      </tr>`;
+  }).join('');
+
+  box.innerHTML = `
+    <div class="history-table-wrap">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Time</th><th>Market</th><th>Signal</th><th>Entry</th>
+            <th>Original SL</th><th>Original TP</th><th>Confidence</th>
+            <th>Status</th><th>Strategy / Reason</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function refreshSignalHistory() {
+  renderSignalHistory();
+}
+
+function clearSignalHistory() {
+  if (!confirm('Clear all saved Forex Clause signal history from this browser?')) return;
+  localStorage.removeItem(SIGNAL_HISTORY_KEY);
+  renderSignalHistory([]);
+}
+
 
 loadMarkets();
 setInterval(() => loadMarkets(false), 60000);
