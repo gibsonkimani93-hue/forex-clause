@@ -197,10 +197,13 @@ function analyze(symbol, quote, history) {
   // signal. This is a filter, not a guarantee of success.
   const participationDirection = rawScore > 0 ? 'BUY' : rawScore < 0 ? 'SELL' : 'WAIT';
   const participationFilter = participationWeak ? 'weak' : participationStrong ? 'strong' : 'neutral';
-  const totalScore = participationFilter === 'weak' ? 0 : rawScore;
-  const signal = totalScore >= 3 ? 'BUY' : totalScore <= -3 ? 'SELL' : 'WAIT';
+  // Do not completely suppress a valid directional setup just because activity is temporarily weak.
+  // Participation is confirmation/caution, not a hard gate; this prevents the engine
+  // from remaining on WAIT for extended periods when trend/price structure agrees.
+  const totalScore = rawScore;
+  const signal = totalScore >= 2 ? 'BUY' : totalScore <= -2 ? 'SELL' : 'WAIT';
   if (participationFilter === 'weak' && participationDirection !== 'WAIT') {
-    strategies.push({ name: 'Participation filter', direction: 'WAIT', score: 0, evidence: `Market activity is weak (${round(activityRatio, 2)}x its recent baseline), so the directional setup is held back.`, status: 'warning' });
+    strategies.push({ name: 'Participation caution', direction: participationDirection, score: 0, evidence: `Market activity is relatively weak (${round(activityRatio, 2)}x its recent baseline). The directional setup is still allowed when other evidence agrees, but confirmation is weaker.`, status: 'warning' });
   } else if (participationFilter === 'strong' && participationDirection !== 'WAIT') {
     strategies.push({ name: 'Participation confirmation', direction: participationDirection, score: 1, evidence: `Market activity is ${round(activityRatio, 2)}x its recent baseline, providing participation confirmation.`, status: 'active' });
   }
