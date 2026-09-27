@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://forex-clause.onrender.com/sitemap.xml
