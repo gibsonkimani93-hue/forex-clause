@@ -346,7 +346,7 @@ function premiumFallback(question, marketsData) {
   const opposite = m.signal === 'BUY' ? 'SELL' : m.signal === 'SELL' ? 'BUY' : 'a directional trade';
   return `PREMIUM MARKET ANALYSIS — ${m.symbol}\n\nSIGNAL: ${m.signal}\n\nWHY ${m.signal}?\n${(m.reasons || []).map(x => `• ${x}`).join('\n')}\n\nSTRATEGY ENGINE\nPrimary strategy: ${m.primaryStrategy}\nCombined strategy: ${m.strategy}\nTotal strategy score: ${m.score}\n\nSTRATEGY-BY-STRATEGY BREAKDOWN\n${strategyLines}\n\nWHY NOT ${opposite}?\nThe engine compared the independent strategies rather than using one fixed rule. Supporting strategies: ${support}. Opposing strategies: ${oppose}. If the opposing evidence strengthens, the signal can change.\n\nINDICATOR EVIDENCE\n• RSI: ${i.rsi ?? 'unavailable'}\n• SMA20: ${i.sma20 ?? 'unavailable'}\n• SMA50: ${i.sma50 ?? 'unavailable'}\n• Current price: ${m.price}\n• Recent 20-bar high: ${i.recent20High ?? 'unavailable'}\n• Recent 20-bar low: ${i.recent20Low ?? 'unavailable'}\n\nLEVELS & RISK\n• Entry/reference: ${m.entry}\n• Stop loss: ${m.stopLoss}\n• TP1 (conservative): ${m.takeProfit1 ?? m.takeProfit}\n• TP2 (main): ${m.takeProfit2 ?? 'unavailable'}\n• TP3 (extended): ${m.takeProfit3 ?? 'unavailable'}\n• Risk/reward: ${m.riskReward}\n\nCONFIDENCE\nDashboard confidence: ${m.confidence}/100. This is a signal-strength metric, not a probability of profit.\n\nThis analysis is educational and does not guarantee a trading result.`;
 }
-async function askAI(question, tier, marketsData) {
+async function askAI(question, tier, marketsData, conversation = []) {
   const key = process.env.OPENAI_API_KEY;
   const premium = tier === 'premium' && process.env.PREMIUM_DEMO === 'true';
   const model = premium ? (process.env.PREMIUM_AI_MODEL || 'gpt-5.6-sol') :
@@ -357,35 +357,49 @@ async function askAI(question, tier, marketsData) {
     entry: m.entry, stopLoss: m.stopLoss, takeProfit: m.takeProfit,
     takeProfit1: m.takeProfit1, takeProfit2: m.takeProfit2, takeProfit3: m.takeProfit3,
     riskReward: m.riskReward, confidence: m.confidence, indicators: m.indicators,
-    strategy: m.strategy, primaryStrategy: m.primaryStrategy, score: m.score, strategies: m.strategies, supportingStrategies: m.supportingStrategies, opposingStrategies: m.opposingStrategies, reasons: m.reasons
+    strategy: m.strategy, primaryStrategy: m.primaryStrategy, score: m.score,
+    strategies: m.strategies, supportingStrategies: m.supportingStrategies,
+    opposingStrategies: m.opposingStrategies, reasons: m.reasons
   })));
 
-  const instructions = premium
-    ? `You are Forex Clause AI PREMIUM, a transparent forex market analysis engine.
-Your most important job is to explain HOW and WHY the dashboard reached its signal, not merely repeat BUY/SELL/WAIT.
-Use ONLY the supplied live dashboard data. Never invent indicators, prices, news, support/resistance levels, or events.
+  const safeConversation = Array.isArray(conversation)
+    ? conversation.slice(-12).map(x => ({
+        role: x?.role === 'assistant' ? 'assistant' : 'user',
+        content: String(x?.content || '').slice(0, 2500)
+      }))
+    : [];
 
-For every question about a trade, signal, or why the market is BUY/SELL/WAIT, structure the answer with these headings when relevant:
-1. SIGNAL — state the current dashboard signal.
-2. WHY — give the concrete evidence from the supplied data, including RSI, SMA20 vs SMA50, recent price movement, and recent 20-bar high/low when relevant.
-3. STRATEGY USED — name the primary strategy and the confirming strategies from the independent strategy engine. Explain the actual conditions that triggered each one. Do not pretend that one hard-coded strategy was used.
-4. WHY NOT THE OPPOSITE — explain which evidence argues against the opposite direction, or say that the data is mixed.
-5. LEVELS & RISK — show the supplied entry, stop loss, and Premium TP1/TP2/TP3 when available. Explain that TP1 is the conservative first target, TP2 the main target, and TP3 the extended target. Do not present any level as a guarantee.
-6. CONFIDENCE — report the supplied confidence as a dashboard metric and explain that it is not a probability of profit.
+  const instructions = `You are Forex Clause AI, a capable, friendly conversational assistant built into Forex Clause.
 
-Do not hide the reasoning behind vague phrases like 'the market looks bullish'. Tie every conclusion to an actual supplied value.
-If the data is insufficient, say exactly what is missing. Never claim certainty or guaranteed profits.
-If asked for current news and no news data is supplied, say news data is not currently supplied.
-This is educational market analysis, not personalized financial advice.`
-    : `You are Forex Clause AI FREE, a concise forex education and market assistant.
-Answer unlimited questions with short, clear, basic explanations. Use supplied live dashboard data when relevant.
-You may mention the current signal and one or two simple reasons, but do not provide the Premium engine's full strategy breakdown,
-detailed trade-plan reasoning, or multi-factor explanation. Never invent data or claim certainty or guaranteed profits.
-This is educational information, not personalized financial advice.`;
+CORE BEHAVIOUR:
+- Answer the user's actual question first. Do not force every question into Forex.
+- You can discuss general knowledge, mathematics, technology, writing, education and everyday questions naturally.
+- If the question is about Forex or a market shown in the dashboard, become a specialist and use the supplied live data.
+- Understand follow-up questions from the recent conversation. Resolve phrases such as "why?", "explain that", and "what about the other one?" from context.
+- Do not repeat a previous answer word-for-word unless repetition is requested. Vary explanations while keeping facts consistent.
+- Never invent live prices, indicators, news, economic events, support/resistance levels or trade results.
+- When live data is unavailable, say so instead of guessing.
+- Never claim a BUY/SELL/WAIT signal guarantees a result. Dashboard confidence is signal strength, not a probability of profit.
+- For trading questions, distinguish dashboard facts from your explanation. Never fabricate a strategy that the dashboard did not supply.
+- If asked about current news but no news feed is supplied, clearly say current news is not available in the supplied data.
+- Keep answers readable with short paragraphs and bullets when helpful. Do not sound robotic.
+- If a question is ambiguous, ask one concise clarifying question rather than inventing assumptions.
+- This is educational market information, not personalized financial advice.
+
+${premium ? `PREMIUM MODE:
+For trade and signal questions, give a deeper explanation. When relevant include SIGNAL, WHY, STRATEGY USED, WHY NOT THE OPPOSITE, LEVELS & RISK, and CONFIDENCE. Compare the independent strategies supplied by the dashboard and explain their actual evidence. Include TP1/TP2/TP3 when supplied.` :
+`FREE MODE:
+Give a concise but genuinely useful answer. For Forex questions, use the supplied dashboard data and explain the main evidence without exposing the full Premium multi-factor breakdown.`}`;
 
   if (!key) {
     return premium ? premiumFallback(question, marketsData) : basicFallback(question, marketsData);
   }
+
+  const conversationText = safeConversation.length
+    ? `
+RECENT CONVERSATION:
+${safeConversation.map(x => `${x.role.toUpperCase()}: ${x.content}`).join('\n')}`
+    : '';
 
   const response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
@@ -396,7 +410,11 @@ This is educational information, not personalized financial advice.`;
     body: JSON.stringify({
       model,
       instructions,
-      input: `Live Forex Clause dashboard data (this is the source of truth):\n${marketContext}\n\nUser question:\n${question}\n\nPREMIUM REQUIREMENT: If this is Premium, do not give a generic market summary. Directly identify the exact BUY/SELL/WAIT signal for the relevant pair, compare every independent strategy supplied in the data, identify the primary strategy and confirmations, explain each score/evidence item, and explain why the opposite signal was not selected.`,
+      input: `LIVE FOREX CLAUSE DASHBOARD DATA (source of truth for current market facts):
+${marketContext}${conversationText}
+
+CURRENT USER MESSAGE:
+${question}`,
       store: false
     })
   });
@@ -466,6 +484,12 @@ const server = http.createServer(async (req, res) => {
 
       const question = String(payload.question || '').trim();
       const tier = payload.tier === 'premium' ? 'premium' : 'free';
+      const conversation = Array.isArray(payload.conversation)
+        ? payload.conversation.slice(-12).map(item => ({
+            role: item?.role === 'assistant' ? 'assistant' : 'user',
+            content: String(item?.content || '').slice(0, 2500)
+          }))
+        : [];
       if (tier === 'premium' && !hasPremiumAccess(req)) {
         return json(res, 402, {
           error: 'Premium AI requires a confirmed paid subscription.',
@@ -491,7 +515,7 @@ const server = http.createServer(async (req, res) => {
         aiMarkets = [...currentMarkets, ...premiumResults.filter(Boolean)];
       }
 
-      const answer = await askAI(question, tier, aiMarkets);
+      const answer = await askAI(question, tier, aiMarkets, conversation);
       return json(res, 200, {
         answer,
         tier,
